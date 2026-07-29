@@ -1,20 +1,27 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from app.controllers.generation import router as generation_router
+from app.controllers.prompts import router as prompts_router
+from app.controllers.sample import router as sample_router
 
-app = FastAPI(title="SolidQMS AI Microservice")
+app = FastAPI(
+    title="SolidQMS AI Microservice",
+    description="Asynchrone AI Microservice voor 8D Kwaliteitsmanagement generatie en ondersteuning",
+    version="1.0.0"
+)
 
-# Dit is het 'Contract' (De JSON-velden die we verwachten van de monoliet)
-class GenerationRequest(BaseModel):
-    dossier_id: int
-    acht_d_stap: str
-    dossier_context: str
-    callback_url: str
+# Registreer de API routers
+app.include_router(generation_router)
+app.include_router(prompts_router)
+app.include_router(sample_router)
 
-# Dit is je GenerationsController (API Receiver)
-@app.post("/api/v1/generations", status_code=202)
-async def create_generation(request: GenerationRequest):
-    # Hier komt straks de logica om de AI aan te roepen (ai_client)
-    # Voor nu printen we alleen even wat we binnenkrijgen
-    print(f"Taak ontvangen voor dossier: {request.dossier_id}")
-    
-    return {"status": "accepted", "message": "Generatie is gestart op de achtergrond"}
+@app.get("/")
+def read_root():
+    return {"status": "online", "system": "SolidQMS AI Microservice"}
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {
+        "status": "healthy",
+        "service": "SolidQMS AI Microservice",
+        "version": "1.0.0"
+    }

@@ -1,43 +1,53 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Depends, status
+from sqlalchemy.orm import Session
 from typing import List
+
+from app.db.database import get_db
+from app.models.prompt import PromptTemplate
 from app.schemas.prompt import PromptResponse, PromptUpdate
-from app.models.prompt import DEFAULT_8D_PROMPTS
 
 router = APIRouter(prefix="/api/v1", tags=["Prompts"])
 
+
 @router.get("/prompts", response_model=List[PromptResponse])
-async def list_prompts():
+async def list_prompts(db: Session = Depends(get_db)):
     """
-    Haal alle beschikbare 8D prompt templates op.
+    Haal alle beschikbare 8D prompt templates op uit de PostgreSQL database.
     """
-    return list(DEFAULT_8D_PROMPTS.values())
+    return PromptTemplate.get_all_prompts(db)
+
 
 @router.get("/prompts/{acht_d_stap}", response_model=PromptResponse)
-async def get_prompt(acht_d_stap: str):
+async def get_prompt(acht_d_stap: str, db: Session = Depends(get_db)):
     """
-    Haal het prompt template op voor een specifieke 8D stap (bijv. D1..D8).
+    Haal het prompt template op voor een specifieke 8D stap uit de PostgreSQL database.
     """
-    step = acht_d_stap.upper()
-    if step not in DEFAULT_8D_PROMPTS:
+    prompt = PromptTemplate.get_by_step(db, acht_d_stap)
+    if not prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden."
+            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden in de database."
         )
-    return DEFAULT_8D_PROMPTS[step]
+    return prompt
+
 
 @router.put("/prompts/{acht_d_stap}", response_model=PromptResponse)
-async def update_prompt(acht_d_stap: str, prompt_update: PromptUpdate):
+async def update_prompt(acht_d_stap: str, prompt_update: PromptUpdate, db: Session = Depends(get_db)):
     """
-    Werk een prompt template bij voor een specifieke 8D stap.
+    Werk een prompt template bij in de PostgreSQL database.
     """
-    step = acht_d_stap.upper()
-    if step not in DEFAULT_8D_PROMPTS:
+    updated_prompt = PromptTemplate.update_prompt(
+        db=db,
+        step_code=acht_d_stap,
+        title=prompt_update.title,
+        description=prompt_update.description,
+        system_prompt=prompt_update.system_prompt
+    )
+
+    if not updated_prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden."
+            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden in de database."
         )
     
-    current = DEFAULT_8D_PROMPTS[step]
-    updated_data = current.model_copy(update=prompt_update.model_dump(exclude_unset=True))
-    DEFAULT_8D_PROMPTS[step] = updated_data
-    return updated_data
+    return updated_prompt

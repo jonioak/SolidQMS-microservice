@@ -1,5 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, status
-from app.schemas.generation import GenerationRequest, GenerationResponse, WebhookPayload
+from app.db.database import SessionLocal
+from app.models.suggestion import Suggestion
+from app.schemas.generation import GenerationRequest, GenerationResponse, WebhookPayload, GenerationTest
 from app.services.ai_client import AIService
 from app.services.webhook import WebhookService
 
@@ -9,16 +11,30 @@ webhook_service = WebhookService()
 
 async def process_generation_background(request: GenerationRequest):
     """
-    Achtergrondtaak voor het genereren van AI-advies en het versturen van de webhook callback.
+    Achtergrondtaak voor het genereren van AI-advies uit de database prompts en het versturen van de webhook callback.
     """
     print(f"[BackgroundWorker] Gestart met AI generatie voor dossier {request.dossier_id}, stap {request.acht_d_stap}")
+    db = None
     try:
+        try:
+            db = SessionLocal()
+        except Exception as e:
+            print(f"[BackgroundWorker] Kon geen DB verbinding maken: {e}")
+            db = None
+
+        # 1. Haal prompt op uit database & genereer AI advies
         suggestion = await ai_service.generate_suggestion(
             dossier_id=request.dossier_id,
             acht_d_stap=request.acht_d_stap,
-            dossier_context=request.dossier_context
+            dossier_context=request.dossier_context,
+            db=db
         )
         
+        # 2. Sla de gegenereerde suggestie op in de database via Suggestion model
+        if db is not None:
+            Suggestion.save_suggestion(db, suggestion)
+
+        # 3. Bouw webhook payload
         payload = WebhookPayload(
             dossier_id=request.dossier_id,
             acht_d_stap=request.acht_d_stap,
@@ -26,7 +42,8 @@ async def process_generation_background(request: GenerationRequest):
             suggestion=suggestion.content,
             metadata={
                 "bullet_points": suggestion.bullet_points,
-                "confidence_score": suggestion.confidence_score
+                "confidence_score": suggestion.confidence_score,
+                "created_at": suggestion.created_at.isoformat() if suggestion.created_at else None
             }
         )
     except Exception as e:
@@ -37,7 +54,11 @@ async def process_generation_background(request: GenerationRequest):
             status="failed",
             error=str(e)
         )
+    finally:
+        if db is not None:
+            db.close()
 
+    # 4. Verstuur callback naar monoliet
     await webhook_service.send_callback(request.callback_url, payload)
 
 
@@ -53,3 +74,9 @@ async def create_generation(request: GenerationRequest, background_tasks: Backgr
         dossier_id=request.dossier_id,
         acht_d_stap=request.acht_d_stap
     )
+
+@router.post("/ai")
+async def gen_test(request: GenerationTest):
+    result = await ai_service.test_generation(request.prompt)
+    return {"status": "success", "result": result}
+

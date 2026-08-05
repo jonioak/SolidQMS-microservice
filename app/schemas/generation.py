@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
+from datetime import datetime
 
 class GenerationRequest(BaseModel):
     dossier_id: int = Field(..., description="ID van het kwaliteitsdossier")
@@ -13,6 +14,15 @@ class GenerationResponse(BaseModel):
     dossier_id: int
     acht_d_stap: str
 
+class SuggestionBase(BaseModel):
+    dossier_id: int
+    acht_d_stap: str
+    content: str = Field(..., description="De door AI gegenereerde advies/voorstel tekst")
+    bullet_points: List[str] = Field(default_factory=list, description="Belangrijkste actiepunten of conclusies")
+    confidence_score: Optional[float] = Field(None, description="Vertrouwensscore van de generatie")
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Tijdstip van generatie")
+
+
 class WebhookPayload(BaseModel):
     dossier_id: int
     acht_d_stap: str
@@ -20,3 +30,9 @@ class WebhookPayload(BaseModel):
     suggestion: Optional[str] = None
     error: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+
+class GenerationTest(BaseModel):
+    prompt: str = Field(..., description="De instructie voor de AI")
+
+class GenerationTeestResponse(BaseModel):
+    response: str = Field(..., description="Antwoord van de AI")

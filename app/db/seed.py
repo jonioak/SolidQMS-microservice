@@ -21,7 +21,7 @@ def seed_standaard_prompts(db: Session):
         bestaande_prompt = db.query(PromptTemplate).filter(PromptTemplate.step_code == step_code).first()
         if not bestaande_prompt:
             nieuwe_prompt = PromptTemplate(
-                step_code=item.step_code,
+                step_code=step_code,
                 title=item.title,
                 description=item.description,
                 system_prompt=item.system_prompt,
@@ -29,6 +29,7 @@ def seed_standaard_prompts(db: Session):
             )
             db.add(nieuwe_prompt)
             toegevoegd_aantal += 1
+
     
     if toegevoegd_aantal > 0:
         db.commit()

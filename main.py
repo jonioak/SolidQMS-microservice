@@ -5,9 +5,10 @@ load_dotenv()
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from app.controllers.generation import router as generation_router
-from app.controllers.prompts import router as prompts_router
+from app.controllers.generation_controller import router as generation_router
+from app.controllers.prompts_controller import router as prompts_router
 from app.controllers.sample import router as sample_router
+
 
 from app.db.database import SessionLocal, engine, Base
 from app.db.seed import seed_standaard_prompts

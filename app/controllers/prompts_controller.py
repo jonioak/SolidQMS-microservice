@@ -26,7 +26,7 @@ async def get_prompt(acht_d_stap: str, db: Session = Depends(get_db)):
     if not prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden in de database."
+            detail=f"Prompt template voor '{acht_d_stap}' niet gevonden in de database."
         )
     return prompt
 
@@ -47,7 +47,7 @@ async def update_prompt(acht_d_stap: str, prompt_update: PromptUpdate, db: Sessi
     if not updated_prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor 8D stap '{acht_d_stap}' niet gevonden in de database."
+            detail=f"Prompt template voor '{acht_d_stap}' niet gevonden in de database."
         )
     
     return updated_prompt

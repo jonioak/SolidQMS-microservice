@@ -13,7 +13,8 @@ async def process_generation_background(request: GenerationRequest):
     """
     Achtergrondtaak voor het genereren van AI-advies uit de database prompts en het versturen van de webhook callback.
     """
-    print(f"[BackgroundWorker] Gestart met AI generatie voor dossier {request.dossier_id}, stap {request.acht_d_stap}")
+    step_key = request.step_key
+    print(f"[BackgroundWorker] Gestart met AI generatie voor dossier {request.dossier_id}, stap/type '{step_key}'")
     db = None
     try:
         try:
@@ -22,12 +23,18 @@ async def process_generation_background(request: GenerationRequest):
             print(f"[BackgroundWorker] Kon geen DB verbinding maken: {e}")
             db = None
 
-        # 1. Haal prompt op uit database & genereer AI advies
+        # 1. Haal prompt op uit database & genereer AI advies met NC velden
         suggestion = await ai_service.generate_suggestion(
             dossier_id=request.dossier_id,
-            acht_d_stap=request.acht_d_stap,
-            dossier_context=request.dossier_context,
-            db=db
+            acht_d_stap=step_key,
+            dossier_context=request.dossier_context or "",
+            db=db,
+            nc_excerpt=request.nc_excerpt,
+            nc_description=request.nc_description,
+            nc_location=request.nc_location,
+            nc_comments=request.nc_comments,
+            current_analysis=request.current_analysis,
+            previous_steps=request.previous_steps
         )
         
         # 2. Sla de gegenereerde suggestie op in de database via Suggestion model
@@ -37,7 +44,7 @@ async def process_generation_background(request: GenerationRequest):
         # 3. Bouw webhook payload
         payload = WebhookPayload(
             dossier_id=request.dossier_id,
-            acht_d_stap=request.acht_d_stap,
+            acht_d_stap=step_key,
             status="completed",
             suggestion=suggestion.content,
             metadata={
@@ -50,7 +57,7 @@ async def process_generation_background(request: GenerationRequest):
         print(f"[BackgroundWorker] Fout opgetreden tijdens generatie: {e}")
         payload = WebhookPayload(
             dossier_id=request.dossier_id,
-            acht_d_stap=request.acht_d_stap,
+            acht_d_stap=step_key,
             status="failed",
             error=str(e)
         )
@@ -72,7 +79,7 @@ async def create_generation(request: GenerationRequest, background_tasks: Backgr
         status="accepted",
         message="Generatie is gestart op de achtergrond",
         dossier_id=request.dossier_id,
-        acht_d_stap=request.acht_d_stap
+        acht_d_stap=request.step_key
     )
 
 @router.post("/ai")
@@ -80,3 +87,7 @@ async def gen_test(request: GenerationTest):
     result = await ai_service.test_generation(request.prompt)
     return {"status": "success", "result": result}
 
+@router.post("/ai8d")
+async def gen_test_8d(request: GenerationTest):
+    result = await ai_service.test_generation(request.prompt)
+    return {"status": "success", "result": result}

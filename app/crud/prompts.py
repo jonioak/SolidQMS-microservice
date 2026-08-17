@@ -37,7 +37,7 @@ def create_prompt(db: Session, title: str, template_text: str, description: str 
 
 # Updaten
 
-def update_prompt(db: Session, step_code: str, title: str = None, template_text: str = None, is_active: bool = None, description: str = None, system_prompt: str = None):
+def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, system_prompt: str = None):
     """
     Past een bestaande prompt aan.
     """
@@ -45,11 +45,8 @@ def update_prompt(db: Session, step_code: str, title: str = None, template_text:
     
     if not db_prompt:
         return None
-
     if title is not None:
         db_prompt.title = title
-    if template_text is not None:
-        db_prompt.system_prompt = template_text
     if system_prompt is not None:
         db_prompt.system_prompt = system_prompt
     if is_active is not None:

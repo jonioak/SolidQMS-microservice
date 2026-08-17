@@ -76,9 +76,8 @@ class AIService:
                     model=self.aimodel,
                     max_tokens=1024,
                     messages=[
-                        {"role": "user", "content": prompt}
-                    ]
-                )
+                        {"role": "user", "content": acht_d_stap}
+                    ] )
     
                 output_text = ""
                 for block in message.content:
@@ -211,30 +210,6 @@ class AIService:
                 content=content,
                 bullet_points=[line.strip("- ") for line in content.split("\n") if line.strip().startswith("-")],
                 confidence_score=0.95
-            )
-
-    async def _call_gemini(self, dossier_id: int, acht_d_stap: str, context: str, system_prompt: str) -> SuggestionBase:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_api_key}"
-        payload = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": f"{system_prompt}\n\nDossier ID: {dossier_id}\nStap: {acht_d_stap}\nContext: {context}"}
-                    ]
-                }
-            ]
-        }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            res = await client.post(url, json=payload)
-            res.raise_for_status()
-            data = res.json()
-            content = data["candidates"][0]["content"]["parts"][0]["text"]
-            return SuggestionBase(
-                dossier_id=dossier_id,
-                acht_d_stap=acht_d_stap,
-                content=content,
-                bullet_points=[line.strip("- ") for line in content.split("\n") if line.strip().startswith("-")],
-                confidence_score=0.92
             )
 
     def _generate_mock_suggestion(self, dossier_id: int, acht_d_stap: str, context: str, step_title: str) -> SuggestionBase:

@@ -9,7 +9,7 @@ class PromptTemplate(Base):
     __tablename__ = "prompt_templates"
 
     id = Column(Integer, primary_key=True, index=True)
-    step_code = Column(String, unique=True, index=True) # Bijv: "D1", "D2", "problem_analysis", etc.
+    step_code = Column(String, unique=True, index=True) # Unieke sleutel, bijv: "problem_analysis", "root_cause", "D1", etc.
     title = Column(String)                              # Bijv: "Problem Analysis (D2)"
     description = Column(Text)                         # Bijv: "Generates AI-powered suggestions..."
     system_prompt = Column(Text)                       # De daadwerkelijke AI prompt tekst
@@ -24,7 +24,6 @@ class PromptTemplate(Base):
         try:
             db_prompts = db.query(cls).all()
             if not db_prompts:
-                # Auto-seed in database indien de tabel leeg is
                 cls._seed_database(db)
                 db_prompts = db.query(cls).all()
 
@@ -36,7 +35,8 @@ class PromptTemplate(Base):
                             step_code=str(p.step_code) if p.step_code else f"STEP_{p.id}",
                             title=str(p.title) if p.title else "",
                             description=str(p.description) if p.description else "",
-                            system_prompt=str(p.system_prompt) if p.system_prompt else ""
+                            system_prompt=str(p.system_prompt) if p.system_prompt else "",
+                            is_active=bool(p.is_active) if p.is_active is not None else True
                         ))
                     except Exception as err:
                         print(f"[PromptModel] Fout bij converteren DB rij {getattr(p, 'id', '?')}: {err}")
@@ -45,9 +45,7 @@ class PromptTemplate(Base):
         except Exception as e:
             print(f"[PromptModel] Fout bij ophalen uit DB (Fallback in-memory): {e}")
 
-        # Nood-fallback alleen als de DB verbinding mislukt
         return list(DEFAULT_8D_PROMPTS.values())
-
 
     @classmethod
     def get_by_step(cls, db: Session, step_code: str) -> Optional[PromptBase]:
@@ -91,16 +89,16 @@ class PromptTemplate(Base):
                     step_code=p.step_code or resolved_key,
                     title=p.title or "",
                     description=p.description or "",
-                    system_prompt=p.system_prompt or ""
+                    system_prompt=p.system_prompt or "",
+                    is_active=bool(p.is_active) if p.is_active is not None else True
                 )
         except Exception as e:
             print(f"[PromptModel] Fout bij ophalen {clean_key} uit DB: {e}")
 
         return DEFAULT_8D_PROMPTS.get(resolved_key) or DEFAULT_8D_PROMPTS.get(clean_key)
 
-
     @classmethod
-    def update_prompt(cls, db: Session, step_code: str, title: Optional[str] = None, description: Optional[str] = None, system_prompt: Optional[str] = None) -> Optional[PromptBase]:
+    def update_prompt(cls, db: Session, step_code: str, title: Optional[str] = None, description: Optional[str] = None, system_prompt: Optional[str] = None, is_active: Optional[bool] = None) -> Optional[PromptBase]:
         """
         Werkt een prompt rechtstreeks bij in de PostgreSQL database.
         """
@@ -124,7 +122,6 @@ class PromptTemplate(Base):
         }
         resolved_key = ALIAS_MAP.get(clean_key.upper(), clean_key.upper())
 
-
         try:
             p = db.query(cls).filter(
                 (cls.step_code == resolved_key) | (cls.step_code == clean_key)
@@ -144,13 +141,17 @@ class PromptTemplate(Base):
                     p.description = description
                 if system_prompt is not None:
                     p.system_prompt = system_prompt
+                if is_active is not None:
+                    p.is_active = is_active
                 db.commit()
                 db.refresh(p)
 
                 res = PromptBase(
-                    title=p.title,
-                    description=p.description,
-                    system_prompt=p.system_prompt
+                    step_code=p.step_code or resolved_key,
+                    title=p.title or "",
+                    description=p.description or "",
+                    system_prompt=p.system_prompt or "",
+                    is_active=bool(p.is_active) if p.is_active is not None else True
                 )
                 DEFAULT_8D_PROMPTS[resolved_key] = res
                 return res
@@ -161,30 +162,28 @@ class PromptTemplate(Base):
             except Exception:
                 pass
 
-
         target_key = resolved_key if resolved_key in DEFAULT_8D_PROMPTS else clean_key
         if target_key in DEFAULT_8D_PROMPTS:
             current = DEFAULT_8D_PROMPTS[target_key]
-            updates = {k: v for k, v in {"title": title, "description": description, "system_prompt": system_prompt}.items() if v is not None}
+            updates = {k: v for k, v in {"title": title, "description": description, "system_prompt": system_prompt, "is_active": is_active}.items() if v is not None}
             updated = current.model_copy(update=updates)
             DEFAULT_8D_PROMPTS[target_key] = updated
             return updated
 
         return None
 
-
     @classmethod
     def _seed_database(cls, db: Session):
-        """Hulpfunctie om de PostgreSQL database te vullen met standaard 8D-prompts"""
+        """Hulpfunctie om de PostgreSQL database te vullen met de standaard prompts"""
         try:
-            for step_code, item in DEFAULT_8D_PROMPTS.items():
-                if not db.query(cls).filter(cls.step_code == step_code).first():
+            for key, item in DEFAULT_8D_PROMPTS.items():
+                if not db.query(cls).filter(cls.step_code == key).first():
                     db.add(cls(
-                        step_code=item.step_code,
+                        step_code=key,
                         title=item.title,
                         description=item.description,
                         system_prompt=item.system_prompt,
-                        is_active=True
+                        is_active=item.is_active if item.is_active is not None else True
                     ))
             db.commit()
             print("[PromptModel] ✅ Automatisch ge-seed in PostgreSQL database!")
@@ -196,16 +195,18 @@ class PromptTemplate(Base):
 # Standaard 8D Prompts catalogus (overgenomen uit de originele Ruby AiSuggestionService van het monoliet)
 DEFAULT_8D_PROMPTS: Dict[str, PromptBase] = {
     "D0": PromptBase(
-            step_code="D0",
-            title="Test",
-            description="Test voor context meegeven",
-            system_prompt="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. %{nc_excerpt}"
-        ),
+        step_code="D0",
+        title="Test",
+        description="Test voor context meegeven",
+        system_prompt="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. %{nc_excerpt}",
+        is_active=True
+    ),
     "D1": PromptBase(
         step_code="D1",
         title="Team Samenstellen",
         description="Stel een multidisciplinair team samen met de nodige product/proceskennis.",
-        system_prompt="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen en expertises voor het 8D team op basis van de dossier context."
+        system_prompt="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen en expertises voor het 8D team op basis van de dossier context.",
+        is_active=True
     ),
     "D2": PromptBase(
         step_code="D2",
@@ -253,7 +254,8 @@ Briefly describe who or what is affected and the significance of the problem.
 Point out any patterns or characteristics that might guide further investigation.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D3": PromptBase(
         step_code="D3",
@@ -304,7 +306,8 @@ Describe how to maintain necessary operations during containment.
 Define what effective containment looks like and how to measure it.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D4": PromptBase(
         step_code="D4",
@@ -354,7 +357,8 @@ Suggest what data and evidence would be most revealing and how to gather it.
 Explain how to test and confirm suspected root causes.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D5": PromptBase(
         step_code="D5",
@@ -405,7 +409,8 @@ Identify potential challenges or risks with these actions and how to mitigate th
 Explain how to track progress and measure effectiveness of the corrective actions.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D6": PromptBase(
         step_code="D6",
@@ -435,7 +440,8 @@ Please recommend validation approaches that:
 Suggest specific validation methods, timelines, and success metrics.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D7": PromptBase(
         step_code="D7",
@@ -465,13 +471,15 @@ Please recommend preventive actions to:
 Focus on systemic improvements rather than just local fixes.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     ),
     "D8": PromptBase(
         step_code="D8",
         title="Team Bedanken & Dossier Sluiten",
         description="Erken de bijdrage van het team en sluit het 8D dossier formeel af.",
-        system_prompt="Je bent een QMS expert. Formuleer een formele afsluiting en waardering voor het 8D team."
+        system_prompt="Je bent een QMS expert. Formuleer een formele afsluiting en waardering voor het 8D team.",
+        is_active=True
     ),
     "RISK_ASSESSMENT": PromptBase(
         step_code="RISK_ASSESSMENT",
@@ -501,6 +509,7 @@ Please identify potential risk factors and provide:
 Focus on practical, measurable risk factors that can be tracked and managed.
 
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
-Use proper markdown formatting with ## for headers and bullet points for lists."""
+Use proper markdown formatting with ## for headers and bullet points for lists.""",
+        is_active=True
     )
 }

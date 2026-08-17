@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.db.database import get_db
 from app.schemas.prompt import PromptResponse, PromptUpdate
@@ -33,16 +33,23 @@ async def get_prompt(acht_d_stap: str, db: Session = Depends(get_db)):
 
 
 @router.put("/prompts/{acht_d_stap}", response_model=PromptResponse)
-async def update_prompt(acht_d_stap: str, prompt_update: PromptUpdate, is_active: bool, db: Session = Depends(get_db)):
+async def update_prompt(
+    acht_d_stap: str,
+    prompt_update: PromptUpdate,
+    is_active: Optional[bool] = None,
+    db: Session = Depends(get_db)
+):
     """
     Werk een prompt template bij in de PostgreSQL database.
     """
+    active_val = prompt_update.is_active if prompt_update.is_active is not None else is_active
+
     updated_prompt = crud.update_prompt(
         db=db,
         step_code=acht_d_stap,
-        template_text=prompt_update.title,
+        title=prompt_update.title,
         description=prompt_update.description,
-        is_active=is_active,
+        is_active=active_val,
         system_prompt=prompt_update.system_prompt
     )
 

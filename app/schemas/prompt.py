@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class PromptBase(BaseModel):
+    model_config = {"from_attributes": True}
+
     step_code: Optional[str] = Field(default="", description="De 8D stap code of sleutel")
     title: Optional[str] = Field(default="", description="Titel van de 8D stap")
     description: Optional[str] = Field(default="", description="Beschrijving en doel van de stap")
@@ -12,6 +14,8 @@ class PromptCreate(PromptBase):
     pass
 
 class PromptUpdate(BaseModel):
+    model_config = {"from_attributes": True}
+
     title: Optional[str] = Field(None, description="Bijgewerkte titel van de 8D stap")
     description: Optional[str] = Field(None, description="Bijgewerkte beschrijving")
     system_prompt: Optional[str] = Field(None, description="Bijgewerkte systeemprompt")

@@ -23,9 +23,9 @@ def get_prompt_by_id(db: Session, prompt_id: int):
     """Haalt één specifieke prompt op basis van het database ID."""
     return db.query(PromptTemplate).filter(PromptTemplate.id == prompt_id).first()
 
-def get_prompt_by_step(db: Session, prompt_code: str):
+def get_prompt_by_step(db: Session, step_code: str):
     """Haalt één specifieke prompt op basis van het step_code/sleutel."""
-    return db.query(PromptTemplate).filter(PromptTemplate.step_code == prompt_code).first()
+    return db.query(PromptTemplate).filter(PromptTemplate.step_code == step_code).first()
 
 def get_prompt_by_name(db: Session, prompt_name: str):
     """Haalt één specifieke prompt op basis van de naam."""

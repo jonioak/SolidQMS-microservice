@@ -22,11 +22,24 @@ class GenerationRequest(BaseModel):
         """Bepaalt de te gebruiken prompt sleutel uit suggestion_type of acht_d_stap"""
         return self.suggestion_type or self.acht_d_stap or "problem_analysis"
 
-class GenerationResponse(BaseModel):
-    status: str = Field("accepted", description="Status van het verzoek")
-    message: str = Field("Generatie is gestart op de achtergrond", description="Bericht voor de client")
+class GenerateRequest(BaseModel):
     dossier_id: int
-    acht_d_stap: str
+    step_code: str
+    input_context: Dict[str, Any]
+
+class GenerationBase(BaseModel):
+    dossier_id: int
+    prompt_title: str
+    prompt_text: str  
+    input_context: Dict[str, Any]
+    output_text: str
+
+class GenerationResponse(GenerationBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
     
 class SuggestionBase(BaseModel):
     dossier_id: int
@@ -34,7 +47,6 @@ class SuggestionBase(BaseModel):
     prompt_text: str
     input_context: Dict[str, Any]
     output_text: str
-
 
 class SuggestionResponse(SuggestionBase):
     id: int

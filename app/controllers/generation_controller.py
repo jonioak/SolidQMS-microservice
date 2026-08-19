@@ -1,9 +1,16 @@
-from fastapi import APIRouter, BackgroundTasks, status
+from fastapi import APIRouter, BackgroundTasks, status, Depends
+
 from app.db.database import SessionLocal
 from app.models.suggestion import Suggestion
 from app.schemas.generation import GenerationRequest, GenerationResponse, WebhookPayload, GenerationTest
 from app.services.ai_client import AIService
 from app.services.webhook import WebhookService
+
+from typing import List, Dict, Any
+
+from sqlalchemy.orm import Session
+from app.db.database import get_db
+import app.crud.generations as crud
 
 router = APIRouter(prefix="/api/v1", tags=["Generations"])
 ai_service = AIService()
@@ -179,3 +186,8 @@ async def gen_test_8d(request: GenerationRequest):
         dossier_id=request.dossier_id,
         acht_d_stap=request.step_key
     )
+
+@router.get("/ai8dget", response_model=List[GenerationResponse])
+async def gen_get(db: Session = Depends(get_db)):
+    generations = crud.get_all_generations(db)
+    return generations

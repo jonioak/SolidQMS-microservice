@@ -2,7 +2,22 @@
 from sqlalchemy.orm import Session
 from app.models.prompt import PromptTemplate
 
-# Lezen
+# Create
+
+def create_prompt(db: Session, title: str, template_text: str, description: str = None):
+    """Maakt een nieuwe lege prompt template aan in de database."""
+    nieuwe_prompt = PromptTemplate(
+        title=title,
+        system_prompt=template_text,
+        description=description,
+        is_active=True
+    )
+    db.add(nieuwe_prompt)
+    db.commit()
+    db.refresh(nieuwe_prompt)
+    return nieuwe_prompt
+
+# Read
 
 def get_prompt_by_id(db: Session, prompt_id: int):
     """Haalt één specifieke prompt op basis van het database ID."""
@@ -20,22 +35,7 @@ def get_all_prompts(db: Session, skip: int = 0, limit: int = 100):
     """Haalt een lijst op van alle prompts (met optie voor paginatie)."""
     return db.query(PromptTemplate).offset(skip).limit(limit).all()
 
-# Aanmaken
-
-def create_prompt(db: Session, title: str, template_text: str, description: str = None):
-    """Maakt een nieuwe lege prompt template aan in de database."""
-    nieuwe_prompt = PromptTemplate(
-        title=title,
-        system_prompt=template_text,
-        description=description,
-        is_active=True
-    )
-    db.add(nieuwe_prompt)
-    db.commit()
-    db.refresh(nieuwe_prompt)
-    return nieuwe_prompt
-
-# Updaten
+# Update
 
 def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, system_prompt: str = None):
     """
@@ -58,7 +58,7 @@ def update_prompt(db: Session, step_code: str, title: str = None, is_active: boo
     db.refresh(db_prompt)
     return db_prompt
 
-# Verwijderen
+# Delete
 
 def delete_prompt(db: Session, prompt_id: int):
     """Verwijdert een prompt volledig uit de database."""

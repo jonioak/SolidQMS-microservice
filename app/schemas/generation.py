@@ -31,11 +31,11 @@ class GenerationResponse(BaseModel):
 class SuggestionBase(BaseModel):
     dossier_id: int
     prompt_title: str
-    used_prompt_text: str
+    prompt_text: str
     input_context: Dict[str, Any]
     output_text: str
 
-# Als je straks de GET request doet, wil je ook het ID en de datum teruggeven:
+
 class SuggestionResponse(SuggestionBase):
     id: int
     created_at: datetime

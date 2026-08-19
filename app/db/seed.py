@@ -64,7 +64,7 @@ def seed_generations(db: Session):
         nieuwe_gen = Generation(
             dossier_id=gen_data.dossier_id,
             prompt_title=gen_data.prompt_title, # Let op: check of jouw model prompt_title of prompt_name gebruikt!
-            prompt_text=gen_data.used_prompt_text,
+            prompt_text=gen_data.prompt_text,
             input_context=gen_data.input_context,
             output_text=gen_data.output_text
         )
@@ -80,7 +80,7 @@ MOCK_GENERATIONS: List[SuggestionBase] = [
     SuggestionBase(
         dossier_id=105,
         prompt_title="Test", # Verwijst naar D0 hierboven
-        used_prompt_text="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. Er lekt kerosine uit de motor.",
+        prompt_text="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. Er lekt kerosine uit de motor.",
         input_context={
             "nc_excerpt": "Er lekt kerosine uit de motor.",
             "nc_location": "Linker vleugel"
@@ -90,7 +90,7 @@ MOCK_GENERATIONS: List[SuggestionBase] = [
     SuggestionBase(
         dossier_id=105,
         prompt_title="Team Samenstellen", # Verwijst naar D1
-        used_prompt_text="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen voor dit probleem: Er lekt kerosine uit de motor.",
+        prompt_text="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen voor dit probleem: Er lekt kerosine uit de motor.",
         input_context={
             "nc_excerpt": "Er lekt kerosine uit de motor.",
         },
@@ -99,7 +99,7 @@ MOCK_GENERATIONS: List[SuggestionBase] = [
     SuggestionBase(
         dossier_id=208, # Een ander dossier om te testen of het filteren per dossier goed werkt!
         prompt_title="Problem Analysis (D2)",
-        used_prompt_text="You are an expert quality management consultant... Issue: Scheur in landingsgestel.",
+        prompt_text="You are an expert quality management consultant... Issue: Scheur in landingsgestel.",
         input_context={
             "nc_excerpt": "Scheur in landingsgestel.",
             "nc_description": "Tijdens reguliere inspectie bleek er een haarscheur te zitten in het rechter landingsgestel.",

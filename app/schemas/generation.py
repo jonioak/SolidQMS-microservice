@@ -26,20 +26,6 @@ class GenerateRequest(BaseModel):
     dossier_id: int
     step_code: str
     input_context: Dict[str, Any]
-
-class GenerationBase(BaseModel):
-    dossier_id: int
-    prompt_title: str
-    prompt_text: str  
-    input_context: Dict[str, Any]
-    output_text: str
-
-class GenerationResponse(GenerationBase):
-    id: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
     
 class SuggestionBase(BaseModel):
     dossier_id: int

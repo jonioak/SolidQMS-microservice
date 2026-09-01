@@ -7,6 +7,7 @@ from app.db.database import SessionLocal
 from app.models.prompt import PromptTemplate
 from app.schemas.generation import SuggestionBase, GenerationRequest
 from dotenv import load_dotenv
+from fastapi import HTTPException
 
 load_dotenv()
 
@@ -16,9 +17,9 @@ class AIService:
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.aimodel = os.getenv("AI_MODEL", "claude-3-5-sonnet-20241022")
+        self.aimodel = os.getenv("AI_MODEL")
 
-    async def test_generation(self, prompt: str) -> str:
+    async def test_generation(self, prompt_template: str, input_context: dict) -> str:
         """
         Test functie om de Anthropic API direct aan te roepen.
         """
@@ -28,26 +29,26 @@ class AIService:
 
         try:
             client = anthropic.AsyncAnthropic(api_key=self.anthropic_api_key)
-                
-            message = await client.messages.create(
+
+             # 1. Vul de variabelen (zoals {nc_excerpt}) in de tekst in
+            formatted_prompt = prompt_template
+            for key, value in input_context.items():
+                formatted_prompt = formatted_prompt.replace(f"{{{key}}}", str(value))
+
+            response = await client.messages.create(
                 model=self.aimodel,
                 max_tokens=1024,
                 messages=[
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": formatted_prompt}
                 ]
             )
-
-            output_text = ""
-            for block in message.content:
-                if block.type == "text":
-                    output_text += block.text
-                    print(block.text)
-            return output_text
-        
+            
+            # 3. Geef alleen de tekst terug
+            return response.content[0].text
+            
         except Exception as e:
-            err_msg = f"[AnthropicAPI Error]: {type(e).__name__} - {e}"
-            print(f"Anthropic error: {err_msg}")
-            return err_msg
+            print(f"❌ AI Error: {e}")
+            raise HTTPException(status_code=500, detail="Kon geen verbinding maken met de AI-provider.")
 
     async def generation8d(
             self,
@@ -237,3 +238,5 @@ class AIService:
             bullet_points=bullet_points,
             confidence_score=0.88
         )
+
+    

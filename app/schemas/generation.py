@@ -22,19 +22,24 @@ class GenerationRequest(BaseModel):
         """Bepaalt de te gebruiken prompt sleutel uit suggestion_type of acht_d_stap"""
         return self.suggestion_type or self.acht_d_stap or "problem_analysis"
 
-class GenerationResponse(BaseModel):
-    status: str = Field("accepted", description="Status van het verzoek")
-    message: str = Field("Generatie is gestart op de achtergrond", description="Bericht voor de client")
+class GenerateRequest(BaseModel):
     dossier_id: int
-    acht_d_stap: str
-
+    step_code: str
+    input_context: Dict[str, Any]
+    
 class SuggestionBase(BaseModel):
     dossier_id: int
-    acht_d_stap: str
-    content: str = Field(..., description="De door AI gegenereerde advies/voorstel tekst")
-    bullet_points: List[str] = Field(default_factory=list, description="Belangrijkste actiepunten of conclusies")
-    confidence_score: Optional[float] = Field(None, description="Vertrouwensscore van de generatie")
-    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow, description="Tijdstip van generatie")
+    prompt_title: str
+    prompt_text: str
+    input_context: Dict[str, Any]
+    output_text: str
+
+class SuggestionResponse(SuggestionBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class WebhookPayload(BaseModel):
     dossier_id: int

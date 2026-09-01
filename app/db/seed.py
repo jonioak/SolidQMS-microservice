@@ -7,9 +7,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, engine, Base
 from app.models.prompt import PromptTemplate
+from app.models.generation import Generation
+
+
 from typing import Dict, List, Optional
 from app.schemas.prompt import PromptBase
-
+from app.schemas.generation import SuggestionBase
 
 
 def seed_standaard_prompts(db: Session):
@@ -20,11 +23,13 @@ def seed_standaard_prompts(db: Session):
     print("🌱 Controleren en seeden van standaard 8D-prompts in database...")
     toegevoegd_aantal = 0
     
-    for step_code, item in DEFAULT_8D_PROMPTS.items():
-        bestaande_prompt = db.query(PromptTemplate).filter(PromptTemplate.step_code == step_code).first()
+    for item in DEFAULT_8D_PROMPTS:
+        # We zoeken nu direct op item.step_code
+        bestaande_prompt = db.query(PromptTemplate).filter(PromptTemplate.step_code == item.step_code).first()
+        
         if not bestaande_prompt:
             nieuwe_prompt = PromptTemplate(
-                step_code=step_code,
+                step_code=item.step_code,
                 title=item.title,
                 description=item.description,
                 system_prompt=item.system_prompt,
@@ -33,43 +38,92 @@ def seed_standaard_prompts(db: Session):
             db.add(nieuwe_prompt)
             toegevoegd_aantal += 1
 
-    
     if toegevoegd_aantal > 0:
         db.commit()
         print(f"✅ Seeden voltooid! {toegevoegd_aantal} nieuwe 8D-prompts toegevoegd aan de database.")
     else:
         totaal = db.query(PromptTemplate).count()
-        print(f"ℹ️ Alle 8D-prompts zijn al aanwezig in de database (Totaal: {totaal}). Seeden overgeslagen.")
+        print(f"ℹ️ Alle 8D-prompts zijn al aanwezig in de database (Totaal: {totaal}).")
 
 
-if __name__ == "__main__":
-    print("🚀 Handmatige database seed gestart...")
-    try:
-        Base.metadata.create_all(bind=engine)
-        db_session = SessionLocal()
-        try:
-            seed_standaard_prompts(db_session)
-        finally:
-            db_session.close()
-    except Exception as err:
-        print(f"❌ Fout tijdens handmatige seed: {err}")
-        sys.exit(1)
+def seed_generations(db: Session):
+    """
+    Zorgt ervoor dat er een paar test-generaties (logboeken) in de database staan.
+    Handig voor het testen van de GET-routes en de frontend zonder OpenAI te hoeven aanroepen.
+    """
+    print("🌱 Controleren en seeden van test-generaties in database...")
+    
+    # We kijken of er al logboeken in de tabel staan
+    bestaande_gens = db.query(Generation).count()
+    if bestaande_gens > 0:
+        print(f"ℹ️ Er zijn al {bestaande_gens} generations aanwezig. Seeden overgeslagen.")
+        return
+
+    toegevoegd_aantal = 0
+    for gen_data in MOCK_GENERATIONS:
+        nieuwe_gen = Generation(
+            dossier_id=gen_data.dossier_id,
+            prompt_title=gen_data.prompt_title, # Let op: check of jouw model prompt_title of prompt_name gebruikt!
+            prompt_text=gen_data.prompt_text,
+            input_context=gen_data.input_context,
+            output_text=gen_data.output_text
+        )
+        db.add(nieuwe_gen)
+        toegevoegd_aantal += 1
+
+    if toegevoegd_aantal > 0:
+        db.commit()
+        print(f"✅ Seeden voltooid! {toegevoegd_aantal} nep-generations toegevoegd aan het logboek.")
+
+
+MOCK_GENERATIONS: List[SuggestionBase] = [
+    SuggestionBase(
+        dossier_id=105,
+        prompt_title="Test", # Verwijst naar D0 hierboven
+        prompt_text="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. Er lekt kerosine uit de motor.",
+        input_context={
+            "nc_excerpt": "Er lekt kerosine uit de motor.",
+            "nc_location": "Linker vleugel"
+        },
+        output_text="De motor lekt vloeistof, we moeten dit direct isoleren, meow! Zorg dat de brandweer klaarstaat, meow!"
+    ),
+    SuggestionBase(
+        dossier_id=105,
+        prompt_title="Team Samenstellen", # Verwijst naar D1
+        prompt_text="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen voor dit probleem: Er lekt kerosine uit de motor.",
+        input_context={
+            "nc_excerpt": "Er lekt kerosine uit de motor.",
+        },
+        output_text="Voor dit 8D team raad ik aan: 1. Een Hydrauliek Specialist. 2. Een Veiligheidsmanager (wegens brandgevaar). 3. Een Kwaliteitsinspecteur."
+    ),
+    SuggestionBase(
+        dossier_id=208, # Een ander dossier om te testen of het filteren per dossier goed werkt!
+        prompt_title="Problem Analysis (D2)",
+        prompt_text="You are an expert quality management consultant... Issue: Scheur in landingsgestel.",
+        input_context={
+            "nc_excerpt": "Scheur in landingsgestel.",
+            "nc_description": "Tijdens reguliere inspectie bleek er een haarscheur te zitten in het rechter landingsgestel.",
+            "nc_location": "Hangar 3"
+        },
+        output_text="## Problem Definition\nEr is een structurele haarscheur aangetroffen.\n\n## Impact\nZeer hoog risico voor luchtwaardigheid."
+    )
+]
 
 # Standaard 8D Prompts catalogus (overgenomen uit de originele Ruby AiSuggestionService van het monoliet)
-DEFAULT_8D_PROMPTS: Dict[str, PromptBase] = {
-    "D0": PromptBase(
+DEFAULT_8D_PROMPTS: List[PromptBase] = [
+    PromptBase(
             step_code="D0",
             title="Test",
             description="Test voor context meegeven",
             system_prompt="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. %{nc_excerpt}"
         ),
-    "D1": PromptBase(
+    PromptBase(
         step_code="D1",
         title="Team Samenstellen",
         description="Stel een multidisciplinair team samen met de nodige product/proceskennis.",
         system_prompt="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen en expertises voor het 8D team op basis van de dossier context."
     ),
-    "D2": PromptBase(
+    PromptBase(
         step_code="D2",
         title="Problem Analysis (D2)",
         description="Generates AI-powered suggestions for the D2 Study the Problem phase.",
@@ -117,7 +171,7 @@ Point out any patterns or characteristics that might guide further investigation
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D3": PromptBase(
+    PromptBase(
         step_code="D3",
         title="Interim Containment (D3)",
         description="Generates interim containment strategies to isolate non-conformities.",
@@ -168,7 +222,7 @@ Define what effective containment looks like and how to measure it.
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D4": PromptBase(
+    PromptBase(
         step_code="D4",
         title="Root Cause Analysis (D4)",
         description="Generates root cause analysis guidance using 5-Why and Fishbone methodologies.",
@@ -218,7 +272,7 @@ Explain how to test and confirm suspected root causes.
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D5": PromptBase(
+    PromptBase(
         step_code="D5",
         title="Corrective Action (D5)",
         description="Generates focused corrective action recommendations.",
@@ -269,7 +323,7 @@ Explain how to track progress and measure effectiveness of the corrective action
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D6": PromptBase(
+    PromptBase(
         step_code="D6",
         title="Validation Approach (D6)",
         description="Generates validation and verification recommendations.",
@@ -299,7 +353,7 @@ Suggest specific validation methods, timelines, and success metrics.
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D7": PromptBase(
+    PromptBase(
         step_code="D7",
         title="Preventive Action (D7)",
         description="Generates preventive action recommendations for systemic improvements.",
@@ -329,13 +383,13 @@ Focus on systemic improvements rather than just local fixes.
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     ),
-    "D8": PromptBase(
+    PromptBase(
         step_code="D8",
         title="Team Bedanken & Dossier Sluiten",
         description="Erken de bijdrage van het team en sluit het 8D dossier formeel af.",
         system_prompt="Je bent een QMS expert. Formuleer een formele afsluiting en waardering voor het 8D team."
     ),
-    "RISK_ASSESSMENT": PromptBase(
+    PromptBase(
         step_code="RISK_ASSESSMENT",
         title="Risk Assessment",
         description="Generates QMS risk assessment and mitigation priorities.",
@@ -365,4 +419,4 @@ Focus on practical, measurable risk factors that can be tracked and managed.
 Keep the response practical, short and actionable, explaining key points without being overly detailed.
 Use proper markdown formatting with ## for headers and bullet points for lists."""
     )
-}
+]

@@ -17,7 +17,7 @@ class AIService:
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.aimodel = os.getenv("AI_MODEL", "claude-3-5-sonnet-20241022")
+        self.aimodel = os.getenv("AI_MODEL")
 
     async def test_generation(self, prompt_template: str, input_context: dict) -> str:
         """

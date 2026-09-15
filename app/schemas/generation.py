@@ -9,7 +9,6 @@ class GenerationRequest(BaseModel):
     dossier_context: Optional[str] = Field("", description="Inhoud en context van het kwaliteitsdossier")
     callback_url: str = Field(..., description="URL waar de AI response naar ge-webhooked moet worden")
 
-    # Optionele monoliet non-conformity velden
     nc_excerpt: Optional[str] = Field(None, description="Non-conformity samenvatting")
     nc_description: Optional[str] = Field(None, description="Volledige NC beschrijving")
     nc_location: Optional[str] = Field(None, description="Locatie van de NC")

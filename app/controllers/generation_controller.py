@@ -19,21 +19,21 @@ import app.crud.prompts as crud_prompts
 router = APIRouter(prefix="/api/v1", tags=["Generations"])
 ai_service = AIService()
 
-@router.post("/ah", response_model=SuggestionResponse)
+@router.post("/ai", response_model=SuggestionResponse)
 async def generate_ai_suggestion(request: GenerateRequest, db: Session = Depends(get_db)):
-    # 1. Haal de prompt op via de CRUD-laag
+
+    # Haal de prompt op via de CRUD-laag
     prompt = crud_prompts.get_prompt_by_step(db, step_code=request.step_code)
     
     if not prompt:
         raise HTTPException(status_code=404, detail=f"Prompt template voor stap {request.step_code} niet gevonden.")
 
-    # 2. AI generatie (Placeholder)
     ai_response = await ai_service.test_generation(
         prompt_template=prompt.system_prompt, 
         input_context=request.input_context
     )
 
-    # 3. Opslaan via de CRUD-laag
+    # Opslaan via de CRUD-laag
     nieuwe_generation = crud_generations.create_generation_log(
         db=db,
         dossier_id=request.dossier_id,

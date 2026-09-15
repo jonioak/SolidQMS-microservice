@@ -40,7 +40,7 @@ def seed_standaard_prompts(db: Session):
 
     if toegevoegd_aantal > 0:
         db.commit()
-        print(f"✅ Seeden voltooid! {toegevoegd_aantal} nieuwe 8D-prompts toegevoegd aan de database.")
+        print(f"Seeden voltooid! {toegevoegd_aantal} nieuwe 8D-prompts toegevoegd aan de database.")
     else:
         totaal = db.query(PromptTemplate).count()
         print(f"ℹ️ Alle 8D-prompts zijn al aanwezig in de database (Totaal: {totaal}).")
@@ -51,7 +51,7 @@ def seed_generations(db: Session):
     Zorgt ervoor dat er een paar test-generaties (logboeken) in de database staan.
     Handig voor het testen van de GET-routes en de frontend zonder OpenAI te hoeven aanroepen.
     """
-    print("🌱 Controleren en seeden van test-generaties in database...")
+    print("Controleren en seeden van test-generaties in database...")
     
     # We kijken of er al logboeken in de tabel staan
     bestaande_gens = db.query(Generation).count()
@@ -97,7 +97,7 @@ MOCK_GENERATIONS: List[SuggestionBase] = [
         output_text="Voor dit 8D team raad ik aan: 1. Een Hydrauliek Specialist. 2. Een Veiligheidsmanager (wegens brandgevaar). 3. Een Kwaliteitsinspecteur."
     ),
     SuggestionBase(
-        dossier_id=208, # Een ander dossier om te testen of het filteren per dossier goed werkt!
+        dossier_id=208, # Een ander dossier om te testen of het filteren per dossier goed werkt
         prompt_title="Problem Analysis (D2)",
         prompt_text="You are an expert quality management consultant... Issue: Scheur in landingsgestel.",
         input_context={
@@ -109,14 +109,20 @@ MOCK_GENERATIONS: List[SuggestionBase] = [
     )
 ]
 
-# Standaard 8D Prompts catalogus (overgenomen uit de originele Ruby AiSuggestionService van het monoliet)
+# Standaard 8D Prompts catalogus
 DEFAULT_8D_PROMPTS: List[PromptBase] = [
     PromptBase(
-            step_code="D0",
-            title="Test",
-            description="Test voor context meegeven",
-            system_prompt="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. %{nc_excerpt}"
-        ),
+        step_code="D67",
+        title="Test",
+        description="Test voor context meegeven",
+        system_prompt="Je bent een expert in Quality Management Systems (QMS). Help bij het voorstellen van rollen en expertises voor het 8D team op basis van de dossier context. %{nc_excerpt}"
+    ),
+    PromptBase(
+        step_code="Poes",
+        title="Test2",
+        description="Test voor context meegeven",
+        system_prompt="Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. %{nc_excerpt}"
+    ),
     PromptBase(
         step_code="D1",
         title="Team Samenstellen",

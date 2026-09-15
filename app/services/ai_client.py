@@ -15,8 +15,6 @@ class AIService:
     def __init__(self):
         load_dotenv()
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         self.aimodel = os.getenv("AI_MODEL")
 
     async def test_generation(self, prompt_template: str, input_context: dict) -> str:
@@ -30,7 +28,7 @@ class AIService:
         try:
             client = anthropic.AsyncAnthropic(api_key=self.anthropic_api_key)
 
-             # 1. Vul de variabelen (zoals {nc_excerpt}) in de tekst in
+             # Vul de variabelen (zoals {nc_excerpt}) in de tekst in
             formatted_prompt = prompt_template
             for key, value in input_context.items():
                 formatted_prompt = formatted_prompt.replace(f"{{{key}}}", str(value))
@@ -47,7 +45,7 @@ class AIService:
             return response.content[0].text
             
         except Exception as e:
-            print(f"❌ AI Error: {e}")
+            print(f"AI Error: {e}")
             raise HTTPException(status_code=500, detail="Kon geen verbinding maken met de AI-provider.")
 
     async def generation8d(
@@ -129,7 +127,7 @@ class AIService:
                 db = None
 
         try:
-            # 1. Haal de prompt op uit de database (of in-memory fallback)
+            # Haal de prompt op uit de database
             prompt_item = PromptTemplate.get_by_step(db, acht_d_stap) if db else None
             if not prompt_item:
                 from app.models.prompt import DEFAULT_8D_PROMPTS
@@ -138,7 +136,7 @@ class AIService:
             raw_system_prompt = prompt_item.system_prompt if prompt_item else "Je bent een QMS expert."
             step_title = prompt_item.title if prompt_item else acht_d_stap
 
-            # 2. Bouw context variabelen voor %{nc_excerpt}, %{nc_description}, etc.
+            # Bouw context variabelen voor %{nc_excerpt}, %{nc_description}, etc.
             context_vars = {
                 "nc_excerpt": nc_excerpt or dossier_context,
                 "nc_description": nc_description or dossier_context,
@@ -151,7 +149,6 @@ class AIService:
 
             system_prompt = self._interpolate_prompt(raw_system_prompt, context_vars)
 
-            # 3. Probeer AI provider (Anthropic -> OpenAI -> Gemini -> Mock)
             if self.anthropic_api_key:
                 try:
                     return await self._call_anthropic(dossier_id, acht_d_stap, dossier_context, system_prompt)
@@ -185,33 +182,6 @@ class AIService:
             bullet_points=[line.strip("- ") for line in content.split("\n") if line.strip().startswith("-")],
             confidence_score=0.96
         )
-
-    async def _call_openai(self, dossier_id: int, acht_d_stap: str, context: str, system_prompt: str) -> SuggestionBase:
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {self.openai_api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Dossier ID: {dossier_id}\nStap: {acht_d_stap}\nContext: {context}"}
-            ],
-            "temperature": 0.7
-        }
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            res = await client.post(url, json=payload, headers=headers)
-            res.raise_for_status()
-            data = res.json()
-            content = data["choices"][0]["message"]["content"]
-            return SuggestionBase(
-                dossier_id=dossier_id,
-                acht_d_stap=acht_d_stap,
-                content=content,
-                bullet_points=[line.strip("- ") for line in content.split("\n") if line.strip().startswith("-")],
-                confidence_score=0.95
-            )
 
     def _generate_mock_suggestion(self, dossier_id: int, acht_d_stap: str, context: str, step_title: str) -> SuggestionBase:
         step = acht_d_stap.upper()

@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.prompt import PromptTemplate
-from app.schemas.generation import SuggestionBase, GenerationRequest
+from app.schemas.task_schema import TaskUpdate
 from dotenv import load_dotenv
 from fastapi import HTTPException
 
@@ -17,7 +17,7 @@ class AIService:
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         self.aimodel = os.getenv("AI_MODEL")
 
-    async def test_generation(self, prompt_template: str, input_context: dict) -> str:
+    async def test_task(self, prompt_template: str, input_context: dict) -> str:
         """
         Test functie om de Anthropic API direct aan te roepen.
         """
@@ -48,7 +48,7 @@ class AIService:
             print(f"AI Error: {e}")
             raise HTTPException(status_code=500, detail="Kon geen verbinding maken met de AI-provider.")
 
-    async def generation8d(
+    async def task8d(
             self,
             dossier_id: int,
             acht_d_stap: str,
@@ -112,7 +112,7 @@ class AIService:
         nc_comments: Optional[str] = None,
         current_analysis: Optional[str] = None,
         previous_steps: Optional[str] = None
-    ) -> SuggestionBase:
+    ) -> TaskUpdate:
         """
         Haalt het prompt template op uit de database voor de gegeven 8D stap/sleutel,
         vervangt de QMS/NC variabelen en voert de AI generatie uit.
@@ -133,7 +133,7 @@ class AIService:
                 from app.models.prompt import DEFAULT_8D_PROMPTS
                 prompt_item = DEFAULT_8D_PROMPTS.get(acht_d_stap.upper())
 
-            raw_system_prompt = prompt_item.system_prompt if prompt_item else "Je bent een QMS expert."
+            raw_prompt_text = prompt_item.prompt_text if prompt_item else "Je bent een QMS expert."
             step_title = prompt_item.title if prompt_item else acht_d_stap
 
             # Bouw context variabelen voor %{nc_excerpt}, %{nc_description}, etc.
@@ -147,11 +147,11 @@ class AIService:
                 "dossier_context": dossier_context
             }
 
-            system_prompt = self._interpolate_prompt(raw_system_prompt, context_vars)
+            prompt_text = self._interpolate_prompt(raw_prompt_text, context_vars)
 
             if self.anthropic_api_key:
                 try:
-                    return await self._call_anthropic(dossier_id, acht_d_stap, dossier_context, system_prompt)
+                    return await self._call_anthropic(dossier_id, acht_d_stap, dossier_context, prompt_text)
                 except Exception as e:
                     print(f"[AIService] Anthropic error, val terug op overige providers: {e}")
 
@@ -160,12 +160,12 @@ class AIService:
             if should_close_db and db is not None:
                 db.close()
 
-    async def _call_anthropic(self, dossier_id: int, acht_d_stap: str, context: str, system_prompt: str) -> SuggestionBase:
+    async def _call_anthropic(self, dossier_id: int, acht_d_stap: str, context: str, prompt_text: str) -> TaskUpdate:
         client = anthropic.AsyncAnthropic(api_key=self.anthropic_api_key)
         response = await client.messages.create(
             model=self.aimodel,
             max_tokens=1024,
-            system=system_prompt,
+            system=prompt_text,
             messages=[
                 {"role": "user", "content": f"Dossier ID: {dossier_id}\nStap: {acht_d_stap}\nContext: {context}"}
             ]
@@ -175,7 +175,7 @@ class AIService:
             if block.type == "text":
                 content += block.text
 
-        return SuggestionBase(
+        return TaskUpdate(
             dossier_id=dossier_id,
             acht_d_stap=acht_d_stap,
             content=content,
@@ -183,7 +183,7 @@ class AIService:
             confidence_score=0.96
         )
 
-    def _generate_mock_suggestion(self, dossier_id: int, acht_d_stap: str, context: str, step_title: str) -> SuggestionBase:
+    def _generate_mock_suggestion(self, dossier_id: int, acht_d_stap: str, context: str, step_title: str) -> TaskUpdate:
         step = acht_d_stap.upper()
 
         content = (
@@ -201,7 +201,7 @@ class AIService:
             "Verifieer de effectiviteit van de voorgestelde acties met de kwaliteitsmanager."
         ]
 
-        return SuggestionBase(
+        return TaskUpdate(
             dossier_id=dossier_id,
             acht_d_stap=acht_d_stap,
             content=content,

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.schemas.prompt import PromptResponse, PromptUpdate
+from app.schemas.prompt_schema import PromptResponse, PromptUpdate
 
 import app.crud.prompts as crud
 
@@ -50,7 +50,7 @@ async def update_prompt(
         title=prompt_update.title,
         description=prompt_update.description,
         is_active=active_val,
-        system_prompt=prompt_update.system_prompt
+        prompt_text=prompt_update.prompt_text
     )
 
     if not updated_prompt:

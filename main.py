@@ -6,13 +6,13 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
-from app.controllers.generation_controller import router as generation_router
+from app.controllers.task_controller import router as task_router
 from app.controllers.prompts_controller import router as prompts_router
 from app.controllers.sample import router as sample_router
 
 
 from app.db.database import SessionLocal, engine, Base
-from app.db.seed import seed_standaard_prompts, seed_generations
+from app.db.seed import seed_standaard_prompts, seed_tasks
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,13 +22,12 @@ async def lifespan(app: FastAPI):
         db = SessionLocal()
         try:
             seed_standaard_prompts(db)
-            seed_generations(db)
+            seed_tasks(db)
         finally:
             db.close()
     except Exception as e:
         # Prachtige fallback melding van jou!
         print(f"Kon niet verbinden met de database op startup (Fallback naar in-memory catalogus): {e}")
-    
     yield 
 
 # De app definitie
@@ -40,7 +39,7 @@ app = FastAPI(
 )
 
 # Registreer de API routers
-app.include_router(generation_router)
+app.include_router(task_router)
 app.include_router(prompts_router)
 app.include_router(sample_router)
 

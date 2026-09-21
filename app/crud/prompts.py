@@ -4,11 +4,11 @@ from app.models.prompt import PromptTemplate
 
 # Create
 
-def create_prompt(db: Session, title: str, template_text: str, description: str = None):
+def create_prompt(db: Session, title: str, prompt_text: str, description: str = None):
     """Maakt een nieuwe lege prompt template aan in de database."""
     nieuwe_prompt = PromptTemplate(
         title=title,
-        system_prompt=template_text,
+        prompt_text=prompt_text,
         description=description,
         is_active=True
     )
@@ -37,7 +37,7 @@ def get_all_prompts(db: Session, skip: int = 0, limit: int = 100):
 
 # Update
 
-def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, system_prompt: str = None):
+def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, prompt_text: str = None):
     """
     Past een bestaande prompt aan.
     """
@@ -47,8 +47,8 @@ def update_prompt(db: Session, step_code: str, title: str = None, is_active: boo
         return None
     if title is not None:
         db_prompt.title = title
-    if system_prompt is not None:
-        db_prompt.system_prompt = system_prompt
+    if prompt_text is not None:
+        db_prompt.prompt_text = prompt_text
     if is_active is not None:
         db_prompt.is_active = is_active
     if description is not None:

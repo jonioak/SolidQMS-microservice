@@ -56,3 +56,6 @@ class TaskUpdate(BaseModel):
     generation_duration: Optional[int] = None
     error_message: Optional[str] = None
     completed_at: Optional[datetime] = None # Optioneel: kun je door de worker laten invullen
+
+    used_prompt: Optional[str] = None
+    prompt_version: Optional[int] = None

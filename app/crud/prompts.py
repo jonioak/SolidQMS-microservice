@@ -23,9 +23,9 @@ def get_prompt_by_id(db: Session, prompt_id: int):
     """Haalt één specifieke prompt op basis van het database ID."""
     return db.query(PromptTemplate).filter(PromptTemplate.id == prompt_id).first()
 
-def get_prompt_by_step(db: Session, step_code: str):
-    """Haalt één specifieke prompt op basis van het step_code/sleutel."""
-    return db.query(PromptTemplate).filter(PromptTemplate.step_code == step_code).first()
+def get_prompt_by_type(db: Session, task_type: str):
+    """Haalt één specifieke prompt op basis van het task_type."""
+    return db.query(PromptTemplate).filter(PromptTemplate.task_type == task_type).first()
 
 def get_prompt_by_name(db: Session, prompt_name: str):
     """Haalt één specifieke prompt op basis van de naam."""
@@ -37,11 +37,11 @@ def get_all_prompts(db: Session, skip: int = 0, limit: int = 100):
 
 # Update
 
-def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, prompt_text: str = None):
+def update_prompt(db: Session, task_type: str, title: str = None, is_active: bool = None, description: str = None, prompt_text: str = None):
     """
     Past een bestaande prompt aan.
     """
-    db_prompt = get_prompt_by_step(db, step_code)
+    db_prompt = get_prompt_by_type(db, task_type)
     
     if not db_prompt:
         return None

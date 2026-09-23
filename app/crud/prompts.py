@@ -67,7 +67,8 @@ def update_prompt(db: Session,
         input_variables=extract_prompt_variables(prompt_update.prompt_text),
         change_note=prompt_update.change_note,
         is_active=True,
-        version=old_prompt.version + 1
+        version=old_prompt.version + 1,
+        created_at=old_prompt.created_at
     )
 
     db.add(new_prompt)

@@ -1,16 +1,20 @@
 # Bestand: app/crud/prompts.py
 from sqlalchemy.orm import Session
 from app.models.prompt import PromptTemplate
+from app.schemas.prompt_schema import PromptCreate, PromptUpdate
+from app.utils.prompt_parser import extract_prompt_variables
 
 # Create
 
-def create_prompt(db: Session, title: str, prompt_text: str, description: str = None):
+def create_prompt(db: Session, task_type: str, prompt_create: PromptCreate):
     """Maakt een nieuwe lege prompt template aan in de database."""
+
     nieuwe_prompt = PromptTemplate(
-        title=title,
-        prompt_text=prompt_text,
-        description=description,
-        is_active=True
+        task_type=task_type,
+        prompt_text=prompt_create.prompt_text,
+        input_variables=extract_prompt_variables(prompt_create.prompt_text),
+        version = 1,
+        is_active=True,
     )
     db.add(nieuwe_prompt)
     db.commit()
@@ -23,9 +27,9 @@ def get_prompt_by_id(db: Session, prompt_id: int):
     """Haalt één specifieke prompt op basis van het database ID."""
     return db.query(PromptTemplate).filter(PromptTemplate.id == prompt_id).first()
 
-def get_prompt_by_step(db: Session, step_code: str):
-    """Haalt één specifieke prompt op basis van het step_code/sleutel."""
-    return db.query(PromptTemplate).filter(PromptTemplate.step_code == step_code).first()
+def get_prompt_by_type(db: Session, task_type: str):
+    """Haalt één specifieke prompt op basis van het task_type."""
+    return db.query(PromptTemplate).filter(PromptTemplate.task_type == task_type).first()
 
 def get_prompt_by_name(db: Session, prompt_name: str):
     """Haalt één specifieke prompt op basis van de naam."""
@@ -35,28 +39,42 @@ def get_all_prompts(db: Session, skip: int = 0, limit: int = 100):
     """Haalt een lijst op van alle prompts (met optie voor paginatie)."""
     return db.query(PromptTemplate).offset(skip).limit(limit).all()
 
+def get_active_prompt_by_type(db: Session, task_type: str):
+    """Haalt de actieve prompt op voor een specifiek task_type."""
+    return db.query(PromptTemplate).filter(
+        PromptTemplate.task_type == task_type,
+        PromptTemplate.is_active == True
+    ).first()
+
 # Update
 
-def update_prompt(db: Session, step_code: str, title: str = None, is_active: bool = None, description: str = None, prompt_text: str = None):
+def update_prompt(db: Session, 
+                  task_type: str, 
+                  prompt_update: PromptUpdate):
+                  
     """
     Past een bestaande prompt aan.
     """
-    db_prompt = get_prompt_by_step(db, step_code)
-    
-    if not db_prompt:
+    old_prompt = get_active_prompt_by_type(db, task_type)
+    if not old_prompt:
         return None
-    if title is not None:
-        db_prompt.title = title
-    if prompt_text is not None:
-        db_prompt.prompt_text = prompt_text
-    if is_active is not None:
-        db_prompt.is_active = is_active
-    if description is not None:
-        db_prompt.description = description
 
+    old_prompt.is_active = False
+
+    new_prompt = PromptTemplate(
+        task_type=task_type,
+        prompt_text=prompt_update.prompt_text,
+        input_variables=extract_prompt_variables(prompt_update.prompt_text),
+        change_note=prompt_update.change_note,
+        is_active=True,
+        version=old_prompt.version + 1
+    )
+
+    db.add(new_prompt)
     db.commit()
-    db.refresh(db_prompt)
-    return db_prompt
+    db.refresh(new_prompt)
+    
+    return new_prompt
 
 # Delete
 

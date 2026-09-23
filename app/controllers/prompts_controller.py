@@ -3,60 +3,71 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.schemas.prompt_schema import PromptResponse, PromptUpdate
+from app.schemas.prompt_schema import PromptResponse, PromptUpdate, PromptCreate
 
-import app.crud.prompts as crud
+import app.crud.prompts as crud_prompts
 
-router = APIRouter(prefix="/api/v1", tags=["Prompts"])
+router = APIRouter(prefix="/prompts", tags=["Prompts"])
 
-
-@router.get("/prompts", response_model=List[PromptResponse])
+@router.get("/", response_model=List[PromptResponse])
 async def list_prompts(db: Session = Depends(get_db)):
     """
     Haal alle beschikbare 8D prompt templates op uit de PostgreSQL database.
     """
-    return crud.get_all_prompts(db)
+    return crud_prompts.get_all_prompts(db)
 
 
-@router.get("/prompts/{acht_d_stap}", response_model=PromptResponse)
-async def get_prompt(acht_d_stap: str, db: Session = Depends(get_db)):
+@router.get("/{task_type}", response_model=PromptResponse)
+async def get_prompt(task_type: str, db: Session = Depends(get_db)):
     """
     Haal het prompt template op voor een specifieke 8D stap uit de PostgreSQL database.
     """
-    prompt = crud.get_prompt_by_step(db, acht_d_stap)
+    prompt = crud_prompts.get_prompt_by_type(db, task_type)
     if not prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor '{acht_d_stap}' niet gevonden in de database."
+            detail=f"Prompt template voor '{task_type}' niet gevonden in de database."
         )
     return prompt
 
 
-@router.put("/prompts/{acht_d_stap}", response_model=PromptResponse)
+@router.post("/create", response_model=PromptResponse)
+def create_prompt(
+    task_type: str,
+    prompt_create: PromptCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Maak een nieuwe prompt template aan in de PostgreSQL database.
+    """
+    new_prompt = crud_prompts.create_prompt(
+        db=db,
+        task_type=task_type,
+        prompt_create=prompt_create
+    )
+    return new_prompt
+
+
+@router.put("/{task_type}", response_model=PromptResponse)
 async def update_prompt(
-    acht_d_stap: str,
+    task_type: str,
     prompt_update: PromptUpdate,
-    is_active: Optional[bool] = None,
     db: Session = Depends(get_db)
 ):
     """
     Werk een prompt template bij in de PostgreSQL database.
     """
-    active_val = prompt_update.is_active if prompt_update.is_active is not None else is_active
 
-    updated_prompt = crud.update_prompt(
+    updated_prompt = crud_prompts.update_prompt(
         db=db,
-        step_code=acht_d_stap,
-        title=prompt_update.title,
-        description=prompt_update.description,
-        is_active=active_val,
-        prompt_text=prompt_update.prompt_text
+        task_type=task_type,
+        prompt_update=prompt_update
     )
 
     if not updated_prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Prompt template voor '{acht_d_stap}' niet gevonden in de database."
+            detail=f"Prompt template voor '{task_type}' niet gevonden in de database."
         )
     
     return updated_prompt

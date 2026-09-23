@@ -15,20 +15,18 @@ class PromptTemplate(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    task_type = Column(String(30), nullable=False)  
+    task_type = Column(String(30), nullable=False)
 
-    version = Column(Integer, nullable=False)  # Versienummer van de prompt
+    prompt_text = Column(Text, nullable=False)
 
-    prompt_text = Column(Text, nullable=False)  # De daadwerkelijke AI prompt tekst
+    version = Column(Integer, nullable=False)
 
-    version = Column(Integer, nullable=False)   # Versienummer van de prompt
+    is_active = Column(Boolean, default=True)
 
-    is_active = Column(Boolean, default=True)   # Of de prompt actief is of niet
+    input_variables = Column(JSON, nullable=True)
 
-    input_variables = Column(JSON, nullable=True)  # JSON string van de input variabelen
+    change_note = Column(Text, nullable=True)
 
-    change_note = Column(Text, nullable=True)  # Notitie over de wijziging
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    created_at = Column(DateTime, default=datetime.utcnow)  # Timestamp van creatie
-
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # Timestamp van laatste update
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

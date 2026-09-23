@@ -11,16 +11,12 @@ from app.models.prompt import PromptTemplate
 from app.models.task import Task
 from datetime import datetime, timedelta
 
-from typing import Dict, List, Optional
-from app.schemas.prompt_schema import PromptBase
-from app.schemas.task_schema import TaskResponse
 
 NU = datetime.utcnow()
 
 
 MOCK_TASKS = [
     {
-        # 1. Een succesvol afgeronde D2 taak
         "id": uuid.uuid4(),
         "task_type": "D2",
         "tenant_id": "tenant_123",
@@ -44,7 +40,6 @@ MOCK_TASKS = [
         "retry_count": 0
     },
     {
-        # 2. Een gefaalde D4 taak (bijv. omdat de 'current_analysis' miste in de input)
         "id": uuid.uuid4(),
         "task_type": "D4",
         "tenant_id": "tenant_123",
@@ -77,7 +72,7 @@ MOCK_TASKS = [
             "nc_description": "Kleine plas hydraulische olie gevonden onder de rechtermotor na taxiën.",
             "nc_location": "Platform B"
         },
-        # Al deze velden zijn nog leeg (nullable=True), precies zoals verwacht bij een nieuwe inname
+        # Al deze velden zijn nog leeg (nullable=True)
         "used_prompt": None,
         "prompt_version": None,
         "output_text": None,
@@ -127,8 +122,8 @@ MOCK_PROMPTS = [
         "task_type": "Poes",
         "version": 1,
         "is_active": True,
-        "prompt_text": "Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. {nc_excerpt}",
-        "input_variables": ["nc_excerpt"],
+        "prompt_text": "Antwoord als een poes, door bijvoorbeeld de zinnen te eindigen met meow. {brokje}",
+        "input_variables": ["brokje"],
         "change_note": "kat"
     },
     {
@@ -460,7 +455,7 @@ def seed_standaard_prompts(db: Session):
 
     if toegevoegd_aantal > 0:
         db.commit()
-        print(f"✅ Seeden voltooid! {toegevoegd_aantal} prompt templates toegevoegd.")
+        print(f"Seeden voltooid! {toegevoegd_aantal} prompt templates toegevoegd.")
 
 
-        print(f"✅ Seeden voltooid! {toegevoegd_aantal} nep-tasks toegevoegd aan het logboek.")
+        print(f"Seeden voltooid! {toegevoegd_aantal} nep-tasks toegevoegd aan het logboek.")

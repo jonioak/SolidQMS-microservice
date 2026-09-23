@@ -26,15 +26,15 @@ class Task(Base):
 
     input_context = Column(JSON, nullable=False)
 
-    output_text = Column(Text, nullable=True)    
+    output_text = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
     completed_at = Column(DateTime, nullable=True)
 
-    generation_duration = Column(Integer, nullable=True)  # in milliseconds
+    generation_duration = Column(Integer, nullable=True)
 
-    model_version = Column(String(50), nullable=True)  # "claude-sonnet-4-6"
+    model_version = Column(String(50), nullable=True)
 
     input_token_count = Column(Integer, nullable=True)
 

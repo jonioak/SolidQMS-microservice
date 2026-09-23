@@ -20,39 +20,6 @@ def create_task(db: Session, task_data: TaskCreate) -> Task:
     db.refresh(db_task)
     return db_task
 
-def create_task_log(db: Session, 
-                    task_type: str, 
-                    tenant_id: str, 
-                    used_prompt: str, 
-                    prompt_version: int, 
-                    input_context: dict, 
-                    output_text: str, 
-                    input_token_count: int, 
-                    output_token_count: int, 
-                    model_version: str
-                    ):
-    """
-    Slaat een complete snapshot op van een AI aanroep inclusief de context.
-    """
-    nieuwe_generatie = Task(
-        task_type=task_type,
-        tenant_id=tenant_id,
-        status="pending",
-        used_prompt=used_prompt,
-        prompt_version=prompt_version,
-        input_context=input_context,
-        output_text=output_text,
-        input_token_count=input_token_count,
-        output_token_count=output_token_count,
-        model_version=model_version
-    )
-    
-    db.add(nieuwe_generatie)
-    db.commit()
-    db.refresh(nieuwe_generatie)
-    
-    return nieuwe_generatie
-
 # Read
 
 def get_task_by_id(db: Session, task_id: UUID) -> Optional[Task]:

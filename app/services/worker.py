@@ -8,8 +8,7 @@ from app.services.ai_client import ai_client
 
 async def process_ai_task(task_id: UUID):
     """
-    Deze functie draait op de achtergrond. Hij haalt de juiste prompt op, 
-    vult de variabelen in, roept de AI aan en updatet de database.
+    Deze functie draait op de achtergrond. Hij haalt de juiste prompt op, vult de variabelen in, roept de AI aan en updatet de database.
     """
 
     db = SessionLocal()
@@ -20,8 +19,8 @@ async def process_ai_task(task_id: UUID):
             return
 
         # Haal de actieve prompt template op voor dit specifieke task_type
-
         prompt_template = crud_prompts.get_prompt_by_type(db, task.task_type)
+
         if not prompt_template:
             error_update = TaskUpdate(status="failed", error_message=f"Geen actieve prompt gevonden voor type {task.task_type}")
             crud_tasks.update_task_status(db, task_id, error_update)
@@ -35,16 +34,15 @@ async def process_ai_task(task_id: UUID):
             crud_tasks.update_task_status(db, task_id, error_update)
             return
 
-        # 4. Roep de asynchrone AI Client aan (hier wacht het proces even)
+        # Roep de asynchrone AI Client aan (hier wacht het proces even)
         ai_result_dict = await ai_client.generate_ai_response(prompt_text=formatted_prompt)
 
-        # 5. Bouw de database update
+        # Database update
         update_data = TaskUpdate(**ai_result_dict)
         update_data.used_prompt = formatted_prompt
         update_data.prompt_version = prompt_template.version
         update_data.completed_at = datetime.utcnow()
 
-        # 6. Sla alles definitief op in de database
         crud_tasks.update_task_status(db, task_id, update_data)
 
     finally:

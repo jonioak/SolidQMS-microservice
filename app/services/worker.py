@@ -19,7 +19,7 @@ async def process_ai_task(task_id: UUID):
             return
 
         # Haal de actieve prompt template op voor dit specifieke task_type
-        prompt_template = crud_prompts.get_prompt_by_type(db, task.task_type)
+        prompt_template = crud_prompts.get_active_prompt_by_type(db, task.task_type)
 
         if not prompt_template:
             error_update = TaskUpdate(status="failed", error_message=f"Geen actieve prompt gevonden voor type {task.task_type}")

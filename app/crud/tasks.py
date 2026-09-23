@@ -49,23 +49,20 @@ def get_all_tasks(db: Session) -> List[Task]:
 # Update
 
 def update_task_status(db: Session, task_id: UUID, update_data: TaskUpdate) -> Optional[Task]:
-    # 1. Zoek de taak
-    db_task = get_task_by_id(db, task_id)
-    if not db_task:
-        return None
-        
-    # 2. Loop door ALLE velden in het TaskUpdate object heen (status, output_text, duration_ms, etc.)
-    # De .model_dump(exclude_unset=True) zorgt ervoor dat we een dictionary krijgen van alleen de ingevulde velden
+    
+    # Maak de dictionary met alleen de meegestuurde velden
     update_dict = update_data.model_dump(exclude_unset=True)
     
-    for key, value in update_dict.items():
-        # Hiermee doen we dynamisch: db_task.status = "failed", db_task.output_text = "...", etc.
-        setattr(db_task, key, value)
+    # Laat SQLAlchemy direct de update uitvoeren op de database
+    rows_affected = db.query(Task).filter(Task.id == task_id).update(update_dict)
+    
+    # Als er 0 rijen zijn aangepast, bestond de taak niet
+    if rows_affected == 0:
+        return None
         
-    # 3. Sla de afzonderlijke velden op in de database
     db.commit()
-    db.refresh(db_task)
-    return db_task
+    
+    return get_task_by_id(db, task_id)
 
 # Delete
 

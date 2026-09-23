@@ -58,8 +58,6 @@ async def update_prompt(
     Werk een prompt template bij in de PostgreSQL database.
     """
 
-    prompt_update.task_type = task_type
-
     updated_prompt = crud_prompts.update_prompt(
         db=db,
         task_type=task_type,

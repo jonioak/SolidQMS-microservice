@@ -33,3 +33,8 @@ class TaskUpdate(BaseModel):
 
     used_prompt: Optional[str] = None
     prompt_version: Optional[int] = None
+
+class TaskQueuedResponse(BaseModel):
+    id: UUID
+    status: str
+    message: str = "Taak is succesvol in de wachtrij gezet voor AI verwerking."

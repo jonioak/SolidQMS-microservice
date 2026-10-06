@@ -137,7 +137,7 @@ MOCK_PROMPTS = [
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D2",
+        "task_type": "problem_analysis",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are an expert quality management consultant specializing in the 8D problem-solving methodology.
@@ -183,7 +183,7 @@ Use proper markdown formatting with ## for headers and bullet points for lists."
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D3",
+        "task_type": "interim_containment",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are an expert in interim containment strategies for quality management.
@@ -231,7 +231,7 @@ Use proper markdown formatting with ## for headers and bullet points for lists."
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D4",
+        "task_type": "root_cause",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are a root cause analysis expert using proven methodologies like 5-Why and Fishbone analysis.
@@ -279,7 +279,7 @@ Use proper markdown formatting with ## for headers and bullet points for lists."
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D5",
+        "task_type": "corrective_action",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are a corrective action specialist for quality management systems.
@@ -328,7 +328,7 @@ Use proper markdown formatting with ## for headers and bullet points for lists."
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D6",
+        "task_type": "validation_approach",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are a validation and verification expert for quality management systems.
@@ -361,7 +361,7 @@ Use proper markdown formatting with ## for headers and bullet points for lists."
     },
     {
         "id": uuid.uuid4(),
-        "task_type": "D7",
+        "task_type": "preventive_action",
         "version": 1,
         "is_active": True,
         "prompt_text": """You are a preventive action specialist focusing on systemic improvements.

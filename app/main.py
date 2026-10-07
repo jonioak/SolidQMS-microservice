@@ -2,7 +2,7 @@ import traceback
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 
@@ -10,9 +10,11 @@ from app.controllers.task_controller import router as task_router
 from app.controllers.prompts_controller import router as prompts_router
 from app.controllers.sample import router as sample_router
 
-
 from app.db.database import SessionLocal, engine, Base
 from app.db.seed import seed_standaard_prompts, seed_tasks
+
+from app.utils.security import verify_api_key
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,7 +37,8 @@ app = FastAPI(
     title="SolidQMS AI Microservice",
     description="Asynchrone AI Microservice voor 8D Kwaliteitsmanagement generatie en prompt aanpassingen",
     version="1.0.0",
-    lifespan=lifespan # Hier koppel je ze aan elkaar!
+    lifespan=lifespan, # Hier koppel je ze aan elkaar!
+    dependencies=[Depends(verify_api_key)] # Hier voeg je de globale beveiliging toe
 )
 
 # Registreer de API routers

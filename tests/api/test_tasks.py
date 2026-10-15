@@ -3,23 +3,21 @@ from app.main import app
 import uuid
 from app.models.task import Task
 
-# Maak een gesimuleerde client aan die direct met je FastAPI app praat
+# Gesimuleerde client die direct met de FastAPI app praat
 client = TestClient(app)
 
 # Task validatie
 
-def test_tc01a_create_task_empty_body_returns_422():
-
-    # Arrange
-    response = client.post("/tasks/create/", json={})
+def test_a01_create_task_empty_body_returns_422(client):
 
     # Act
-    
+    response = client.post("/tasks/create/", json={})
+
     # Assert
     assert response.status_code == 422
     assert "detail" in response.json()
 
-def test_tc01b_create_task_missing_required_fields_returns_422():
+def test_a02_create_task_missing_required_fields_returns_422(client):
 
     # Arrange
     payload_zonder_task_type = {
@@ -31,7 +29,7 @@ def test_tc01b_create_task_missing_required_fields_returns_422():
 
     # Act
     response = client.post("/tasks/create", json=payload_zonder_task_type)
-    
+
     assert response.status_code == 422
     # Controleer of Pydantic specifiek klaagt over 'task_type'
     foutmeldingen = response.json()["detail"]
@@ -41,18 +39,23 @@ def test_tc01b_create_task_missing_required_fields_returns_422():
     assert mist_task_type is True
 
 # Task Handshake
-def test_tc02_create_task_correct_body_202():
+
+def test_a03_create_task_correct_body_202(client):
+
+    from unittest.mock import patch, AsyncMock
 
     # Arrange
     payload = {
-        "task_type" : "67",
+        "task_type": "test_type",
         "tenant_id": "1",
         "input_context": {
             "nc_excerpt": "kerosinelek"
         }
     }
 
-    response = client.post("/tasks/create", json=payload)
+    # Mock voor de background worker zodat het niet automatisch verbindt met de PostgreSQL database
+    with patch("app.controllers.task_controller.process_ai_task", new_callable=AsyncMock):
+        response = client.post("/tasks/create", json=payload)
 
     # Assert
     assert response.status_code == 201
@@ -61,13 +64,13 @@ def test_tc02_create_task_correct_body_202():
 
     assert "id" in data
     assert "status" in data
-    assert  "message" in data 
+    assert "message" in data
     assert data["status"] == "pending"
     assert data["message"] == "Taak is in de wachtrij gezet."
 
 # Polling
 
-def test_tc03_get_task_by_non_existant_id_404():
+def test_a04_get_task_by_non_existant_id_404(client):
 
     # Arrange
     nep_id = "123e4567-e89b-12d3-a456-426614174000"
@@ -79,14 +82,14 @@ def test_tc03_get_task_by_non_existant_id_404():
     assert get_response.json()["detail"] == "Taak met ID " + nep_id + " bestaat niet."
 
 
-def test_tc04_get_task_by_id_200(client, db_session):
+def test_a05_get_task_by_id_200(client, db_session):
 
     # Arrange
     test_id = uuid.uuid4()
     nep_taak = Task(
         id=test_id,
         tenant_id="test",
-        task_type="D2", 
+        task_type="test_type", 
         status="processing",
         input_context={"test": "test"},
         output_text=None

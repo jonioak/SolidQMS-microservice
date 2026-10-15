@@ -7,7 +7,8 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 
 # Database configuratie
-from app.db.database import Base, get_db 
+from app.db.database import Base, get_db
+from app.utils.security import verify_api_key
 
 # SQLite database voor tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -21,16 +22,12 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="function")
 def db_session():
-    """
-    Maakt een verse database aan voor élke individuele test, 
-    en gooit deze daarna weer weg (100% isolatie).
-    """
 
     Base.metadata.create_all(bind=engine)
-    
+
     db = TestingSessionLocal()
     try:
-        yield db  # Hier pauzeert de fixture en geeft hij de 'db' aan jouw test (TC-03)
+        yield db  # Hier pauzeert de fixture en geeft hij de 'db' aan jouw test
     finally:
         db.close()
         # Ruim de rommel op na de test
@@ -39,15 +36,23 @@ def db_session():
 @pytest.fixture(scope="function")
 def client(db_session):
     """
-    Dit is een cruciale stap in FastAPI! 
-    We vertellen de API dat hij tijdens de tests NIET de echte database 
-    moet gebruiken, maar de test-database die we hierboven hebben gemaakt.
+    Tijdens de tests NIET de echte database gebruiken, maar de test-database hierboven.
+    De TestClient stuurt automatisch de test API-key mee als header,
+    zodat de globale verify_api_key dependency niet blokkeert.
     """
     def override_get_db():
         yield db_session
-        
-    # 'Override' de originele database dependency met onze test versie
+
+    def override_verify_api_key():
+        """Sla de API-key check over in tests — security wordt apart getest in test_security.py."""
+        return "test_sleutel"
+
+    # 'Override' de originele dependencies met test versies
     app.dependency_overrides[get_db] = override_get_db
-    
+    app.dependency_overrides[verify_api_key] = override_verify_api_key
+
     with TestClient(app) as test_client:
         yield test_client
+
+    # Ruim de overrides op na de test
+    app.dependency_overrides.clear()

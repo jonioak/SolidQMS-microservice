@@ -3,7 +3,7 @@ from app.crud.tasks import create_task, update_task_status
 from app.schemas.task_schema import TaskCreate, TaskUpdate
 from app.models.task import Task
 
-def test_tc05_create_task_via_crud(db_session):
+def test_c01_create_task_via_crud(db_session):
 
     # Arrange
     task_in = TaskCreate(
@@ -24,7 +24,7 @@ def test_tc05_create_task_via_crud(db_session):
     assert opgeslagen_taak is not None
 
 
-def test_tc06_update_task_status_via_crud_naar_failed(db_session):
+def test_c02_update_task_status_via_crud_naar_failed(db_session):
 
     # Arrange
     test_id = uuid.uuid4()
@@ -60,7 +60,7 @@ def test_tc06_update_task_status_via_crud_naar_failed(db_session):
     assert geupdate_taak.output_text is None
 
 
-def test_tc07_update_task_via_crud(db_session):
+def test_c03_update_task_via_crud(db_session):
 
     # Arrange
     test_id = uuid.uuid4()

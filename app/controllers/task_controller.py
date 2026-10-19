@@ -4,14 +4,12 @@ from typing import List
 from uuid import UUID
 
 from app.schemas.task_schema import TaskResponse, TaskCreate, TaskQueuedResponse
-from app.services.ai_client import AIService
 from app.services.worker import process_ai_task
 from app.db.database import get_db
 
 import app.crud.tasks as crud_tasks
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
-ai_service = AIService()
 
 
 @router.post("/create", response_model=TaskQueuedResponse, status_code=status.HTTP_201_CREATED)

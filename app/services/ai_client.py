@@ -82,7 +82,3 @@ class MockAIProvider(BaseAIProvider):
     async def generate_ai_response(self, prompt_text: str) -> dict:
         response = await self.generate_response(prompt_text)
         return response.model_dump()
-
-
-# Singleton
-ai_client = AnthropicAIProvider()

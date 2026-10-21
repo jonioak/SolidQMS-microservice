@@ -53,8 +53,10 @@ def test_a03_create_task_correct_body_202(client):
         }
     }
 
-    # Mock voor de background worker zodat het niet automatisch verbindt met de PostgreSQL database
-    with patch("app.controllers.task_controller.process_ai_task", new_callable=AsyncMock):
+    from app.services.worker import TaskProcessor
+
+    # Mock voor de background worker zodat hij tijdens de API-test geen echte AI aanroept
+    with patch.object(TaskProcessor, "process_task", new_callable=AsyncMock):
         response = client.post("/tasks/create", json=payload)
 
     # Assert

@@ -18,7 +18,6 @@ from app.utils.security import verify_api_key
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Jouw slimme try-except logica, maar dan veilig verpakt!
     try:
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
@@ -28,7 +27,6 @@ async def lifespan(app: FastAPI):
         finally:
             db.close()
     except Exception as e:
-        # Prachtige fallback melding van jou!
         print(f"Kon niet verbinden met de database op startup (Fallback naar in-memory catalogus): {e}")
     yield 
 
@@ -37,11 +35,10 @@ app = FastAPI(
     title="SolidQMS AI Microservice",
     description="Asynchrone AI Microservice voor 8D Kwaliteitsmanagement generatie en prompt aanpassingen",
     version="1.0.0",
-    lifespan=lifespan, # Hier koppel je ze aan elkaar!
-    dependencies=[Depends(verify_api_key)] # Hier voeg je de globale beveiliging toe
+    lifespan=lifespan,
+    dependencies=[Depends(verify_api_key)]
 )
 
-# Registreer de API routers
 app.include_router(task_router)
 app.include_router(prompts_router)
 app.include_router(sample_router)

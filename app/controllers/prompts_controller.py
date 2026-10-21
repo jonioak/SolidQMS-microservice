@@ -1,28 +1,24 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from sqlalchemy.orm import Session
 from typing import List
 
-from app.db.database import get_db
+from app.interfaces.repositories import IPromptRepository
+from app.dependencies import get_prompt_repository
 from app.schemas.prompt_schema import PromptResponse, PromptUpdate, PromptCreate
-
-import app.crud.prompts as crud_prompts
 
 router = APIRouter(prefix="/prompts", tags=["Prompts"])
 
+
 @router.get("/", response_model=List[PromptResponse])
-async def list_prompts(db: Session = Depends(get_db)):
-    """
-    Haal alle beschikbare 8D prompt templates op uit de PostgreSQL database.
-    """
-    return crud_prompts.get_all_prompts(db)
+async def list_prompts(prompt_repo: IPromptRepository = Depends(get_prompt_repository)):
+    return prompt_repo.get_all()
 
 
 @router.get("/{task_type}", response_model=PromptResponse)
-async def get_prompt(task_type: str, db: Session = Depends(get_db)):
-    """
-    Haal het prompt template op voor een specifieke 8D stap uit de PostgreSQL database.
-    """
-    prompt = crud_prompts.get_prompt_by_type(db, task_type)
+async def get_prompt(
+    task_type: str,
+    prompt_repo: IPromptRepository = Depends(get_prompt_repository)
+):
+    prompt = prompt_repo.get_by_type(task_type)
     if not prompt:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -35,13 +31,9 @@ async def get_prompt(task_type: str, db: Session = Depends(get_db)):
 def create_prompt(
     task_type: str,
     prompt_create: PromptCreate,
-    db: Session = Depends(get_db)
+    prompt_repo: IPromptRepository = Depends(get_prompt_repository)
 ):
-    """
-    Maak een nieuwe prompt template aan in de PostgreSQL database.
-    """
-    new_prompt = crud_prompts.create_prompt(
-        db=db,
+    new_prompt = prompt_repo.create(
         task_type=task_type,
         prompt_create=prompt_create
     )
@@ -52,14 +44,9 @@ def create_prompt(
 async def update_prompt(
     task_type: str,
     prompt_update: PromptUpdate,
-    db: Session = Depends(get_db)
+    prompt_repo: IPromptRepository = Depends(get_prompt_repository)
 ):
-    """
-    Werk een prompt template bij in de PostgreSQL database.
-    """
-
-    updated_prompt = crud_prompts.update_prompt(
-        db=db,
+    updated_prompt = prompt_repo.update(
         task_type=task_type,
         prompt_update=prompt_update
     )

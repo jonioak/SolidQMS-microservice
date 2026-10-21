@@ -1,49 +1,68 @@
 from uuid import UUID
-from datetime import datetime
-from app.db.database import SessionLocal
-from app.crud import tasks as crud_tasks
-from app.crud import prompts as crud_prompts
+from datetime import datetime, timezone
+from typing import Optional
+
+from app.interfaces.repositories import ITaskRepository, IPromptRepository
+from app.interfaces.ai_provider import BaseAIProvider
+from app.services.prompt_formatter import PromptFormatterService
 from app.schemas.task_schema import TaskUpdate
-from app.services.ai_client import ai_client
 
-async def process_ai_task(task_id: UUID):
-    """
-    Deze functie draait op de achtergrond. Hij haalt de juiste prompt op, vult de variabelen in, roept de AI aan en updatet de database.
-    """
 
-    db = SessionLocal()
-    
-    try:
-        task = crud_tasks.get_task_by_id(db, task_id)
+class TaskProcessor:
+
+    def __init__(
+        self,
+        task_repo: ITaskRepository,
+        prompt_repo: IPromptRepository,
+        ai_provider: BaseAIProvider,
+        formatter: Optional[PromptFormatterService] = None
+    ):
+        self.task_repo = task_repo
+        self.prompt_repo = prompt_repo
+        self.ai_provider = ai_provider
+        self.formatter = formatter or PromptFormatterService()
+
+    async def process_task(self, task_id: UUID) -> None:
+
+        task = self.task_repo.get_by_id(task_id)
         if not task:
             return
 
-        # Haal de actieve prompt template op voor dit specifieke task_type
-        prompt_template = crud_prompts.get_active_prompt_by_type(db, task.task_type)
-
+        prompt_template = self.prompt_repo.get_active_by_type(task.task_type)
         if not prompt_template:
-            error_update = TaskUpdate(status="failed", error_message=f"Geen actieve prompt gevonden voor type {task.task_type}")
-            crud_tasks.update_task_status(db, task_id, error_update)
+            error_update = TaskUpdate(
+                status="failed",
+                error_message=f"Geen actieve prompt gevonden voor type {task.task_type}"
+            )
+            self.task_repo.update_status(task_id, error_update)
             return
 
-        # Vul de variabelen uit de monoliet in de prompt template
         try:
-            formatted_prompt = prompt_template.prompt_text.format(**task.input_context)
+            formatted_prompt = self.formatter.format_prompt(
+                template_text=prompt_template.prompt_text,
+                input_context=task.input_context or {}
+            )
         except KeyError as e:
-            error_update = TaskUpdate(status="failed", error_message=f"Ontbrekende variabele in input_context: {str(e)}")
-            crud_tasks.update_task_status(db, task_id, error_update)
+            error_update = TaskUpdate(
+                status="failed",
+                error_message=f"Ontbrekende variabele in input_context: {str(e)}"
+            )
+            self.task_repo.update_status(task_id, error_update)
             return
 
-        # Roep de asynchrone AI Client aan (hier wacht het proces even)
-        ai_result_dict = await ai_client.generate_ai_response(prompt_text=formatted_prompt)
+        ai_response = await self.ai_provider.generate_response(prompt_text=formatted_prompt)
 
-        # Database update
-        update_data = TaskUpdate(**ai_result_dict)
-        update_data.used_prompt = formatted_prompt
-        update_data.prompt_version = prompt_template.version
-        update_data.completed_at = datetime.utcnow()
+        update_data = TaskUpdate(
+            status=ai_response.status,
+            output_text=ai_response.output_text,
+            input_token_count=ai_response.input_token_count,
+            output_token_count=ai_response.output_token_count,
+            model_version=ai_response.model_version,
+            generation_duration=ai_response.generation_duration,
+            error_message=ai_response.error_message,
+            used_prompt=formatted_prompt,
+            prompt_version=prompt_template.version,
+            completed_at=datetime.now(timezone.utc)
+        )
 
-        crud_tasks.update_task_status(db, task_id, update_data)
-
-    finally:
-        db.close()
+        self.task_repo.update_status(task_id, update_data)

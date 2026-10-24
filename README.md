@@ -103,5 +103,5 @@ pytest -v
 
 De testsuite bestaat uit 34 tests verdeeld over drie lagen:
 - **API integration tests (`tests/api/`):** Testen van endpoints, statuscodes (200, 202, 400, 401, 404) en API-authenticatie.
-- **CRUD tests (`tests/crud/`):** Testen van de repositories en database queries (aanmaken, ophalen, archiveren).
+- **Repository tests (`tests/repositories/`):** Testen van de repositories en database queries (aanmaken, ophalen, archiveren via het Repository Pattern).
 - **Unit tests (`tests/unit/`):** Testen van regex variabelen extractie, prompt formatting, fail-fast validatie en AI provider uitwisselbaarheid (LSP).

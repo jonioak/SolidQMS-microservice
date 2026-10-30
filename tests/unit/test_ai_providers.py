@@ -3,7 +3,7 @@ from app.interfaces.ai_provider import BaseAIProvider, AIResponse
 from app.services.ai_client import MockAIProvider, AnthropicAIProvider
 
 
-def test_u10_mock_ai_provider_response():
+def test_u08_mock_ai_provider_response():
 
     # Arrange
     provider: BaseAIProvider = MockAIProvider(mock_output="Dit is een testanalyse.")
@@ -18,7 +18,7 @@ def test_u10_mock_ai_provider_response():
     assert response.model_version == "mock-ai"
 
 
-def test_u11_anthropic_provider_zonder_api_key_faalt_netjes():
+def test_u09_anthropic_provider_zonder_api_key_faalt_netjes():
 
     # Arrange
     provider: BaseAIProvider = AnthropicAIProvider(api_key="")
@@ -31,7 +31,7 @@ def test_u11_anthropic_provider_zonder_api_key_faalt_netjes():
     assert "Geen ANTHROPIC_API_KEY" in response.error_message
 
 
-def test_u12_lsp_providers_zijn_volledig_uitwisselbaar():
+def test_u10_lsp_providers_zijn_volledig_uitwisselbaar():
 
     # Arrange
     def voer_ai_taak_uit(provider: BaseAIProvider, prompt: str) -> AIResponse:

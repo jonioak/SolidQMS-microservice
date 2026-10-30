@@ -106,6 +106,49 @@ def test_a05_get_task_by_id_200(client, db_session):
 
     # Assert
     assert data["id"] == str(test_id)
+    assert data["tenant_id"] == "test"
     assert "status" in data
 
     assert data["status"] in ["pending", "processing", "completed", "failed"]
+
+
+def test_a06_multi_tenant_task_creation_and_retrieval(client, db_session):
+    from unittest.mock import patch, AsyncMock
+    from app.services.worker import TaskProcessor
+
+    payload_tenant_a = {
+        "task_type": "problem_analysis",
+        "tenant_id": "tenant_meridian_aero",
+        "input_context": {"nc_excerpt": "Kerosinelek linkervleugel"}
+    }
+    payload_tenant_b = {
+        "task_type": "problem_analysis",
+        "tenant_id": "tenant_charper_bonaroo",
+        "input_context": {"nc_excerpt": "Koppelingsbreuk transportband"}
+    }
+
+    with patch.object(TaskProcessor, "process_task", new_callable=AsyncMock):
+        resp_a = client.post("/tasks/create", json=payload_tenant_a)
+        resp_b = client.post("/tasks/create", json=payload_tenant_b)
+
+    assert resp_a.status_code == 201
+    assert resp_b.status_code == 201
+
+    id_a = resp_a.json()["id"]
+    id_b = resp_b.json()["id"]
+
+    get_a = client.get(f"/tasks/{id_a}")
+    get_b = client.get(f"/tasks/{id_b}")
+
+    assert get_a.status_code == 200
+    assert get_b.status_code == 200
+
+    data_a = get_a.json()
+    data_b = get_b.json()
+
+    assert data_a["tenant_id"] == "tenant_meridian_aero"
+    assert data_a["input_context"]["nc_excerpt"] == "Kerosinelek linkervleugel"
+
+    assert data_b["tenant_id"] == "tenant_charper_bonaroo"
+    assert data_b["input_context"]["nc_excerpt"] == "Koppelingsbreuk transportband"
+    assert data_a["tenant_id"] != data_b["tenant_id"]
